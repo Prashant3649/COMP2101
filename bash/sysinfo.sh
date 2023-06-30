@@ -103,3 +103,97 @@ get_cpu_info
 
 # Section: Operating System Information
 get_os_info
+
+
+# This script displays system information for a Linux machine
+
+################
+# Check Privilege
+################
+
+if [[ $EUID -ne 0 ]]; then
+  echo "This script must be run with root privilege." >&2
+  exit 1
+fi
+
+################
+# System Description
+################
+
+system_title="System Description"
+
+# Computer Manufacturer
+manufacturer=$(dmidecode -s system-manufacturer)
+[[ -n $manufacturer ]] && system_description="Computer Manufacturer: $manufacturer"
+
+# Computer Model
+model=$(dmidecode -s system-product-name)
+[[ -n $model ]] && system_description+="\nComputer Model: $model"
+
+# Computer Serial Number
+serial_number=$(dmidecode -s system-serial-number)
+[[ -n $serial_number ]] && system_description+="\nComputer Serial Number: $serial_number"
+
+[[ -n $system_description ]] || system_description="Data for this section is unavailable."
+
+################
+# CPU Information
+################
+
+cpu_title="CPU Information"
+
+# Get CPU information from lshw command
+cpu_info=$(lshw -class processor 2>/dev/null)
+
+# Check if CPU information is available
+if [[ -n $cpu_info ]]; then
+  # Extract CPU details for each CPU
+  cpu_count=$(grep -c "product" <<< "$cpu_info")
+  cpu_details=""
+  
+  for ((i=1; i<=cpu_count; i++)); do
+    cpu=$(grep -A 11 "product:$i" <<< "$cpu_info")
+    
+    # CPU Manufacturer and Model
+    manufacturer=$(grep "vendor" <<< "$cpu" | awk -F': ' '{print $2}')
+    model=$(grep "product" <<< "$cpu" | awk -F': ' '{print $2}')
+    
+    # CPU Architecture
+    architecture=$(grep "width" <<< "$cpu" | awk -F': ' '{print $2}')
+    
+    # CPU Core Count
+    core_count=$(grep "cores" <<< "$cpu" | awk -F': ' '{print $2}')
+    
+    # CPU Maximum Speed
+    max_speed=$(grep "capacity" <<< "$cpu" | awk -F': ' '{print $2}')
+    
+    # CPU Caches
+    caches=$(grep "size" <<< "$cpu" | awk -F': ' '{print $2}' | paste -sd '/')
+    
+    cpu_details+="CPU $i:\n"
+    [[ -n $manufacturer ]] && cpu_details+="Manufacturer: $manufacturer\n"
+    [[ -n $model ]] && cpu_details+="Model: $model\n"
+    [[ -n $architecture ]] && cpu_details+="Architecture: $architecture\n"
+    [[ -n $core_count ]] && cpu_details+="Core Count: $core_count\n"
+    [[ -n $max_speed ]] && cpu_details+="Maximum Speed: $max_speed\n"
+    [[ -n $caches ]] && cpu_details+="Caches: $caches\n"
+    
+    cpu_details+="\n"
+  done
+else
+  cpu_details="Data for this section is unavailable."
+fi
+
+################
+# Operating System Information
+################
+
+os_title="Operating System Information"
+
+# Linux Distro
+linux_distro=$(lsb_release -is)
+[[ -n $linux_distro ]] && os_info="Linux distro: $linux_distro"
+
+# Distro Version
+distro_version=$(lsb_release -rs)
+[[
