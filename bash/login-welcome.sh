@@ -41,9 +41,8 @@ case $current_day in
     title="Visitor"
     ;;
 esac
-
 welcome_message+="Welcome to planet $hostname, \"$title $myname!\""$'\n'
 welcome_message+="It is $current_day at $current_time."$'\n'
 
-# Display the welcome message
-echo "$welcome_message"
+# Display the welcome message using cowsay
+echo "$welcome_message" | cowsay -w
